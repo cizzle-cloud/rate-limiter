@@ -1,0 +1,22 @@
+name: Rate Limiter CI
+
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest  # This sets the environment for the test job
+    
+    steps:
+    - name: Check out the code
+      uses: actions/checkout@v2  # Checkout the code from the PR
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: '1.22'  # Specify the Go version you are using
+
+    - name: Install dependencies
+      run: go mod tidy  # Install any required dependencies
+
+    - name: Run tests
+      run: go test ./tests/...  # This will run the tests inside the tests folder
