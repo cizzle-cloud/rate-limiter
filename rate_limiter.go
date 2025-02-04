@@ -11,42 +11,49 @@ type RateLimitAlgo interface {
 }
 
 type TokenBucket struct {
-	tokens     int
-	lastRefill time.Time
-	refillRate int
-	bucketSize int
-	mu         sync.Mutex
+	capacity float32
+	tokens   float32
+	mu       sync.Mutex
 }
 
 func (tb *TokenBucket) Allow() bool {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 
-	now := time.Now()
-	elapsed := now.Sub(tb.lastRefill).Seconds()
-	tb.lastRefill = now
-
-	// Add tokens based on time passed
-	tb.tokens += int(elapsed * float64(tb.refillRate))
-	if tb.tokens > tb.bucketSize {
-		tb.tokens = tb.bucketSize
-	}
-
-	// Check if request is allowed
-	if tb.tokens > 0 {
+	if tb.tokens >= 1 {
 		tb.tokens--
+		fmt.Println("Request allowed")
+		fmt.Println("Number of tokens", tb.tokens)
 		return true
 	}
+	fmt.Println("Request denied")
+	fmt.Println("Number of tokens", tb.tokens)
 	return false
 }
 
-func NewTokenBucket(refillRate, bucketSize int) *TokenBucket {
-	return &TokenBucket{
-		tokens:     bucketSize,
-		lastRefill: time.Now(),
-		refillRate: refillRate,
-		bucketSize: bucketSize,
+func NewTokenBucket(refillTokens float32, refillInterval time.Duration, capacity float32) *TokenBucket {
+	tb := &TokenBucket{
+		capacity: capacity,
+		tokens:   capacity,
 	}
+
+	go func() {
+		ticker := time.NewTicker(refillInterval)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			tb.mu.Lock()
+			tb.tokens += refillTokens
+			if tb.tokens > tb.capacity {
+				tb.tokens = tb.capacity
+			}
+			fmt.Println("tokens after adding", tb.tokens)
+			tb.mu.Unlock()
+
+		}
+	}()
+
+	return tb
 }
 
 type FixedWindowCounter struct {
@@ -98,13 +105,15 @@ func (rl *RateLimiter) Allow(key string) bool {
 }
 
 func main() {
-	limiter1 := NewFixedWindowCounter(5, 10*time.Second) // 5 requests per 10 seconds
-	limiter2 := NewFixedWindowCounter(5, 10*time.Second) // 5 requests per 10 seconds
+	// limiter1 := NewFixedWindowCounter(5, 10*time.Second) // 5 requests per 10 seconds
+	// limiter2 := NewFixedWindowCounter(5, 10*time.Second) // 5 requests per 10 seconds
+	limiter3 := NewTokenBucket(1, 2*time.Second, 5)
 
 	for i := 1; i <= 10; i++ {
 		fmt.Println(" =========Request==========", i)
-		limiter1.Allow()
-		limiter2.Allow()
-		time.Sleep(1 * time.Second) // Simulate request interval
+		// limiter1.Allow()
+		// limiter2.Allow()
+		limiter3.Allow()
+		time.Sleep(500 * time.Millisecond) // Simulate request interval
 	}
 }
