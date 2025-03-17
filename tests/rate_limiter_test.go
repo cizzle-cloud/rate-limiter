@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	ratelimiter "github.com/cizzle-cloud/rate-limiter/rate_limiter"
+	ratelimiter "github.com/cizzle-cloud/rate-limiter"
 )
 
 func TestCleanup(t *testing.T) {
