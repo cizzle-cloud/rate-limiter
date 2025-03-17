@@ -20,7 +20,7 @@ func TestCleanup(t *testing.T) {
 		ratelimiter.NewTokenBucket(capacity, refillTokens, refillInterval),
 	)
 
-	// sleep for one cleanup interval
+	// Sleep for one cleanup interval
 	time.Sleep(time.Second)
 
 	if len(limiter.GetRecords()) != 0 {

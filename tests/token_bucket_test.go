@@ -9,7 +9,7 @@ import (
 	ratelimiter "github.com/cizzle-cloud/rate-limiter/rate_limiter"
 )
 
-func TestAllow(t *testing.T) {
+func TestAllowTb(t *testing.T) {
 	capacity := 5
 	refillTokens := 1
 	refillInterval := 500 * time.Millisecond // Make sure is big enough to let the capacity be exhausted
@@ -25,11 +25,11 @@ func TestAllow(t *testing.T) {
 
 	// Now the bucket should be empty
 	if tb.Allow() {
-		t.Error("Expected Allow() to return false when tokens are depleted")
+		t.Error("Expected Allow() to return false when tokens are deleted")
 	}
 }
 
-func TestRefill(t *testing.T) {
+func TestRefillTb(t *testing.T) {
 	capacity := 5
 	refillTokens := 1
 	refillInterval := 500 * time.Millisecond
@@ -57,7 +57,7 @@ func TestRefill(t *testing.T) {
 	}
 }
 
-func TestConcurrency(t *testing.T) {
+func TestConcurrencyTb(t *testing.T) {
 	capacity := 10
 	refillTokens := 2
 	refillInterval := 500 * time.Millisecond
