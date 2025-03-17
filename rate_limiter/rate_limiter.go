@@ -115,6 +115,11 @@ type RateLimiter struct {
 	mu              sync.Mutex
 }
 
+func (rl *RateLimiter) Exists(key string) bool {
+	_, exists := rl.records[key]
+	return exists
+}
+
 func (rl *RateLimiter) Add(key string, algo RateLimitAlgo) {
 	rl.records[key] = &Record{
 		algo:       algo,
