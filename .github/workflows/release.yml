@@ -5,8 +5,6 @@ on:
     branches: [main]
   push:
     branches: [main]
-    tags:
-      - 'v*.*.*'
 
 env:
   REGISTRY: ghcr.io
@@ -61,6 +59,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      version_tag: ${{ steps.tag-step.outputs.version_tag }}
 
     steps:
       - name: Checkout code
@@ -77,6 +77,7 @@ jobs:
         run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
       - name: Create and push tag
+        id: tag-step
         run: |
           git checkout main
           git pull origin main
@@ -84,6 +85,7 @@ jobs:
           git tag -a $TAG -m "Release $TAG"
           git push origin $TAG
           echo "Created and pushed tag $TAG"
+          echo "version_tag=$TAG" >> $GITHUB_OUTPUT
 
       - name: Merge release into develop
         run: |
@@ -102,7 +104,6 @@ jobs:
   create-release:
     name: Create Release
     needs: tag
-    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -113,8 +114,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Read version
-        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+      - name: Set version
+        run: echo "VERSION=${{ needs.tag.outputs.version_tag }}" >> $GITHUB_ENV
 
       - name: Create archive
         run: |
