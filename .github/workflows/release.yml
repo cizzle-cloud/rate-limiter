@@ -1,6 +1,8 @@
 name: Release
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
 
@@ -11,11 +13,11 @@ env:
 jobs:
   prepare-release:
     name: Prepare Release
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     outputs:
-      version: ${{ steps.read-version.outputs.version }}
       ignore-bump: ${{ steps.bump-check.outputs.ignore-bump }}
     steps:
       - name: Checkout code
@@ -51,18 +53,13 @@ jobs:
           git commit -m "update VERSION and CHANGELOG.md"
           git push origin ${{ github.head_ref }}
 
-      - name: Read version
-        id: read-version
-        if: steps.bump-check.outputs.ignore-bump == 'false'
-        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_OUTPUT
-
   tag:
-    needs: [prepare-release]
+    name: Tag and Merge Release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    env:
-      VERSION: ${{ needs.setup.outputs.version }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -74,11 +71,14 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
+      - name: Read version
+        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
       - name: Create and push tag
         run: |
           git checkout main
           git pull origin main
-          TAG="v${{ env.VERSION }}"
+          TAG="v${VERSION}"
           git tag -a $TAG -m "Release $TAG"
           git push origin $TAG
           echo "Created and pushed tag $TAG"
