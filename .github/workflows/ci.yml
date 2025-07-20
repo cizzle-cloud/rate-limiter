@@ -1,0 +1,55 @@
+name: Lint and Test
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+jobs:
+  lint-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.22'
+
+    - name: Install dependencies
+      run: go mod tidy
+
+    - name: Run gofmt
+      run: |
+        fmtres=$(gofmt -l .)
+        if [ -n "$fmtres" ]; then
+          echo "Go files are not formatted correctly:"
+          echo "$fmtres"
+          exit 1
+        fi
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Run golint
+      run: |
+        go install golang.org/x/lint/golint@latest
+        golint ./...
+
+    - name: Run gocyclo
+      run: |
+        go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+        gocyclo -over 15 .
+
+    - name: Run tests with coverage
+      run: go test -coverprofile=coverage.txt
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        slug: cizzle-cloud/rate-limiter

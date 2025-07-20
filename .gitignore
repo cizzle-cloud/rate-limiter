@@ -1,0 +1,8 @@
+main.exe
+tmp
+**/.env
+**/.vscode
+**/.vs
+
+coverage.out
+coverage.txt
