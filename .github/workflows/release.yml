@@ -119,9 +119,9 @@ jobs:
 
       - name: Create archive
         run: |
-          mkdir dist
-          tar -czf dist/rate-limiter-${VERSION}.tar.gz . --exclude=dist
-          zip -r dist/rate-limiter-${VERSION}.zip . -x dist/\*
+          mkdir -p dist
+          tar -czf dist/rate-limiter-${VERSION}.tar.gz --exclude='./dist' --exclude='.git' .
+          zip -r dist/rate-limiter-${VERSION}.zip . -x "dist/*" ".git/*"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
