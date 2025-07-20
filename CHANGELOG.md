@@ -4,5 +4,12 @@
 
 ### Added
 
-- release.yml
-
+- Rate limiter logic
+- Token bucket algorithm
+- Fixed window counter algorithm
+- Tests
+- Lint and test ci
+- Release ci
+- bump-version.sh
+- LICENSE
+- README
