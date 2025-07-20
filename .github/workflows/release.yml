@@ -114,7 +114,7 @@ jobs:
       - name: Read version
         run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
 
-      - name: Create archive (tar.gz and zip)
+      - name: Create archive
         run: |
           mkdir dist
           tar -czf dist/rate-limiter-${VERSION}.tar.gz . --exclude=dist
