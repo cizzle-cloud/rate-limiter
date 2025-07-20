@@ -6,10 +6,14 @@ import (
 	"time"
 )
 
+// RateLimitAlgo defines the interface for rate limiting algorithms.
 type RateLimitAlgo interface {
 	Allow() bool
 }
 
+// TokenBucket implements a token bucket rate limiting algorithm.
+// It allows bursts of requests up to the bucket capacity and refills
+// tokens at a specified rate.
 type TokenBucket struct {
 	capacity       int
 	tokens         int
@@ -19,6 +23,8 @@ type TokenBucket struct {
 	mu             sync.Mutex
 }
 
+// Allow checks if a request can be processed by consuming a token.
+// It returns true if a token is available, false otherwise.
 func (tb *TokenBucket) Allow() bool {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
@@ -43,17 +49,8 @@ func (tb *TokenBucket) refill() {
 	}
 }
 
-func (tb *TokenBucket) GetTokens() int {
-	return tb.tokens
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
+// NewTokenBucket creates a new TokenBucket with the specified capacity,
+// refill rate, and refill interval.
 func NewTokenBucket(capacity, refillTokens int, refillInterval time.Duration) *TokenBucket {
 	return &TokenBucket{
 		capacity:       capacity,
@@ -64,12 +61,16 @@ func NewTokenBucket(capacity, refillTokens int, refillInterval time.Duration) *T
 	}
 }
 
+// FixedWindowCounter implements a fixed window rate limiting algorithm.
+// It allows a fixed number of requests within a specified time window.
 type FixedWindowCounter struct {
 	limit        int
 	requestCount int
 	mu           sync.Mutex
 }
 
+// Allow checks if a request can be processed within the current window.
+// It returns true if the request count is below the limit, false otherwise.
 func (fw *FixedWindowCounter) Allow() bool {
 	fw.mu.Lock()
 	defer fw.mu.Unlock()
@@ -84,6 +85,8 @@ func (fw *FixedWindowCounter) Allow() bool {
 	return false
 }
 
+// NewFixedWindowCounter creates a new FixedWindowCounter with the specified
+// limit and window size. It automatically resets the counter after each window.
 func NewFixedWindowCounter(limit int, windowSize time.Duration) *FixedWindowCounter {
 	fw := &FixedWindowCounter{
 		limit: limit,
@@ -103,11 +106,14 @@ func NewFixedWindowCounter(limit int, windowSize time.Duration) *FixedWindowCoun
 
 }
 
+// Record holds a rate limiting algorithm instance and its last activity time.
 type Record struct {
 	algo       RateLimitAlgo
 	lastActive time.Time
 }
 
+// RateLimiter manages multiple rate limiting records identified by keys.
+// It automatically cleans up inactive records based on TTL.
 type RateLimiter struct {
 	records         map[string]*Record
 	ttl             time.Duration
@@ -115,11 +121,13 @@ type RateLimiter struct {
 	mu              sync.Mutex
 }
 
+// Exists checks if a rate limiting record exists for the given key.
 func (rl *RateLimiter) Exists(key string) bool {
 	_, exists := rl.records[key]
 	return exists
 }
 
+// Add creates a new rate limiting record for the given key with the specified algorithm.
 func (rl *RateLimiter) Add(key string, algo RateLimitAlgo) {
 	rl.records[key] = &Record{
 		algo:       algo,
@@ -127,19 +135,18 @@ func (rl *RateLimiter) Add(key string, algo RateLimitAlgo) {
 	}
 }
 
+// GetRecords returns all current rate limiting records.
 func (rl *RateLimiter) GetRecords() map[string]*Record {
 	return rl.records
 }
 
+// Allow checks if a request for the given key is allowed by the associated
+// rate limiting algorithm and updates the last activity time.
 func (rl *RateLimiter) Allow(key string) bool {
 	record := rl.records[key]
 	record.lastActive = time.Now()
 	return record.algo.Allow()
 }
-
-// really a quick and dirt solution. ideally I would like a cache struct
-// injected in rate limiter. But for now is included so runtime memory
-// is not cluttered
 
 func (rl *RateLimiter) cleanup() {
 	ticker := time.NewTicker(rl.cleanupInterval)
@@ -157,6 +164,8 @@ func (rl *RateLimiter) cleanup() {
 	}
 }
 
+// NewRateLimiter creates a new RateLimiter with the specified TTL for records
+// and cleanup interval. It automatically starts a cleanup goroutine.
 func NewRateLimiter(ttl, cleanupInterval time.Duration) *RateLimiter {
 	rl := &RateLimiter{
 		records:         make(map[string]*Record),
@@ -167,4 +176,11 @@ func NewRateLimiter(ttl, cleanupInterval time.Duration) *RateLimiter {
 	go rl.cleanup()
 
 	return rl
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
