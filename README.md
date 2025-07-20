@@ -1,5 +1,5 @@
 # Rate Limiter
-
+[![Version](https://img.shields.io/github/v/tag/cizzle-cloud/rate-limiter?label=version)](https://github.com/cizzle-cloud/rate-limiter/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cizzle-cloud/rate-limiter)](https://goreportcard.com/report/github.com/cizzle-cloud/rate-limiter)
 [![codecov](https://codecov.io/gh/cizzle-cloud/rate-limiter/branch/main/graph/badge.svg)](https://codecov.io/gh/cizzle-cloud/rate-limiter)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)

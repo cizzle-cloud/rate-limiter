@@ -2,7 +2,7 @@ name: Lint and Test
 
 on:
   push:
-    branches: [prepare-release, develop, main]
+    branches: [develop, main]
   pull_request:
     branches: [develop, main]
 
