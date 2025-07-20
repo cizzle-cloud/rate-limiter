@@ -4,15 +4,12 @@
 
 ### Added
 
-- Added release ci
-- Added release ci
-- Added bump-version.sh
-- Added LICENSE
-- Added README
-
-### Changed
-
-- Changed ci.yml
-- Changed .gitignore
-- Refactored rate_limiter.go and tests
-
+- Rate limiter logic
+- Token bucket algorithm
+- Fixed window counter algorithm
+- Tests
+- Lint and test ci
+- Release ci
+- bump-version.sh
+- LICENSE
+- README
