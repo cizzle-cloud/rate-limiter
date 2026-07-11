@@ -142,23 +142,47 @@ func TestConcurrencyTb(t *testing.T) {
 	}
 }
 
+func TestGetOrCreateConcurrency(t *testing.T) {
+	limiter := NewRateLimiter(time.Minute, time.Minute)
+
+	algo := NewTokenBucket(10, 1, time.Second)
+
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			record := limiter.GetOrCreate("client1", algo)
+			record.Allow()
+		}()
+	}
+
+	wg.Wait()
+
+	records := limiter.getRecords()
+	if len(records) != 1 {
+		t.Errorf("Expected 1 record, got %d", len(records))
+	}
+}
+
 func TestCleanup(t *testing.T) {
-	limiter := NewRateLimiter(time.Second, time.Second)
+	limiter := NewRateLimiter(time.Second, 500*time.Millisecond)
 
 	capacity := 5
 	refillTokens := 2
 	refillInterval := time.Second
 
 	// Create a record
-	limiter.Add(
+	limiter.GetOrCreate(
 		"client1",
 		NewTokenBucket(capacity, refillTokens, refillInterval),
 	)
 
-	// Sleep for one cleanup interval
-	time.Sleep(time.Second)
+	// Sleep for two cleanup intervals so the first tick can't catch it
+	// (lastActive == T=0, first tick at T=1s: 1s > 1s is false)
+	time.Sleep(2 * time.Second)
 
-	if len(limiter.GetRecords()) != 0 {
+	if len(limiter.getRecords()) != 0 {
 		t.Error("should be zero")
 	}
 
