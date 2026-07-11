@@ -1,6 +1,5 @@
 # Rate Limiter
 [![Version](https://img.shields.io/github/v/tag/cizzle-cloud/rate-limiter?label=version)](https://github.com/cizzle-cloud/rate-limiter/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/cizzle-cloud/rate-limiter)](https://goreportcard.com/report/github.com/cizzle-cloud/rate-limiter)
 [![codecov](https://codecov.io/gh/cizzle-cloud/rate-limiter/branch/main/graph/badge.svg)](https://codecov.io/gh/cizzle-cloud/rate-limiter)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
 
@@ -26,55 +25,6 @@ go get github.com/cizzle-cloud/rate-limiter
 
 ## Quick Start
 
-### Token Bucket Example
-
-```go
-package main
-
-import (
-    "fmt"
-    "time"
-    
-    "github.com/cizzle-cloud/rate-limiter"
-)
-
-func main() {
-    // Create a token bucket with capacity of 10, refilling 5 tokens every second
-    tb := ratelimiter.NewTokenBucket(10, 5, time.Second)
-    
-    // Check if request is allowed
-    if tb.Allow() {
-        fmt.Println("Request allowed")
-    } else {
-        fmt.Println("Request denied - rate limit exceeded")
-    }
-}
-```
-
-### Fixed Window Counter Example
-
-```go
-package main
-
-import (
-    "fmt"
-    "time"
-    
-    "github.com/cizzle-cloud/rate-limiter"
-)
-
-func main() {
-    // Allow 100 requests per minute
-    fwc := ratelimiter.NewFixedWindowCounter(100, time.Minute)
-    
-    if fwc.Allow() {
-        fmt.Println("Request allowed")
-    } else {
-        fmt.Println("Request denied - rate limit exceeded")
-    }
-}
-```
-
 ### Rate Limiter with Keys
 
 ```go
@@ -93,15 +43,11 @@ func main() {
     
     userID := "user123"
     
-    // Check if user record exists
-    if !rl.Exists(userID) {
-        // Create a token bucket for this user (10 requests, refill 1 per second)
-        tb := ratelimiter.NewTokenBucket(10, 1, time.Second)
-        rl.Add(userID, tb)
-    }
+    // Get or create a rate limit record for this user (10 requests, refill 1 per second)
+    record := rl.GetOrCreate(userID, ratelimiter.NewTokenBucket(10, 1, time.Second))
     
     // Check if user's request is allowed
-    if rl.Allow(userID) {
+    if record.Allow() {
         fmt.Println("User request allowed")
     } else {
         fmt.Println("User request denied")
@@ -153,10 +99,13 @@ func NewRateLimiter(ttl, cleanupInterval time.Duration) *RateLimiter
 ```
 
 **Methods:**
-- `Exists(key string) bool` - Checks if record exists
-- `Add(key string, algo RateLimitAlgo)` - Adds new rate limiting record
-- `Allow(key string) bool` - Checks if request is allowed for key
-- `GetRecords() map[string]*Record` - Returns all records
+- `GetOrCreate(key string, algo RateLimitAlgo) *Record` - Returns existing record or creates a new one
+
+#### Record
+Holds a rate limiting algorithm instance and its last activity time.
+
+**Methods:**
+- `Allow() bool` - Checks if request is allowed and updates last activity time
 
 ## Use Cases
 
