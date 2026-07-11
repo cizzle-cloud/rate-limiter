@@ -110,6 +110,16 @@ func NewFixedWindowCounter(limit int, windowSize time.Duration) *FixedWindowCoun
 type Record struct {
 	algo       RateLimitAlgo
 	lastActive time.Time
+	mu         sync.Mutex
+}
+
+// Allow checks if a request is allowed by the rate limiting algorithm
+// and updates the last activity time.
+func (r *Record) Allow() bool {
+	r.mu.Lock()
+	r.lastActive = time.Now()
+	r.mu.Unlock()
+	return r.algo.Allow()
 }
 
 // RateLimiter manages multiple rate limiting records identified by keys.
@@ -119,49 +129,6 @@ type RateLimiter struct {
 	ttl             time.Duration
 	cleanupInterval time.Duration
 	mu              sync.Mutex
-}
-
-// Exists checks if a rate limiting record exists for the given key.
-func (rl *RateLimiter) Exists(key string) bool {
-	_, exists := rl.records[key]
-	return exists
-}
-
-// Add creates a new rate limiting record for the given key with the specified algorithm.
-func (rl *RateLimiter) Add(key string, algo RateLimitAlgo) {
-	rl.records[key] = &Record{
-		algo:       algo,
-		lastActive: time.Now(),
-	}
-}
-
-// GetRecords returns all current rate limiting records.
-func (rl *RateLimiter) GetRecords() map[string]*Record {
-	return rl.records
-}
-
-// Allow checks if a request for the given key is allowed by the associated
-// rate limiting algorithm and updates the last activity time.
-func (rl *RateLimiter) Allow(key string) bool {
-	record := rl.records[key]
-	record.lastActive = time.Now()
-	return record.algo.Allow()
-}
-
-func (rl *RateLimiter) cleanup() {
-	ticker := time.NewTicker(rl.cleanupInterval)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		rl.mu.Lock()
-		now := time.Now()
-		for key, record := range rl.records {
-			if now.Sub(record.lastActive) > rl.ttl {
-				delete(rl.records, key)
-			}
-		}
-		rl.mu.Unlock()
-	}
 }
 
 // NewRateLimiter creates a new RateLimiter with the specified TTL for records
@@ -176,6 +143,52 @@ func NewRateLimiter(ttl, cleanupInterval time.Duration) *RateLimiter {
 	go rl.cleanup()
 
 	return rl
+}
+
+// GetOrCreate returns the existing record for the given key, or creates a new one
+// with the provided algorithm.
+func (rl *RateLimiter) GetOrCreate(key string, algo RateLimitAlgo) *Record {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	if record, exists := rl.records[key]; exists {
+		return record
+	}
+	record := &Record{
+		algo:       algo,
+		lastActive: time.Now(),
+	}
+	rl.records[key] = record
+	return record
+}
+
+func (rl *RateLimiter) cleanup() {
+	ticker := time.NewTicker(rl.cleanupInterval)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		rl.mu.Lock()
+		now := time.Now()
+		for key, record := range rl.records {
+			record.mu.Lock()
+			expired := now.Sub(record.lastActive) > rl.ttl
+			record.mu.Unlock()
+			if expired {
+				delete(rl.records, key)
+			}
+		}
+		rl.mu.Unlock()
+	}
+}
+
+// getRecords returns a copy of all current rate limiting records.
+func (rl *RateLimiter) getRecords() map[string]*Record {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	records := make(map[string]*Record, len(rl.records))
+	for k, v := range rl.records {
+		records[k] = v
+	}
+	return records
 }
 
 func min(a, b int) int {
