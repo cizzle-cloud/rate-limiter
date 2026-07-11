@@ -178,9 +178,7 @@ func TestCleanup(t *testing.T) {
 		NewTokenBucket(capacity, refillTokens, refillInterval),
 	)
 
-	// Sleep for two cleanup intervals so the first tick can't catch it
-	// (lastActive == T=0, first tick at T=1s: 1s > 1s is false)
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	if len(limiter.getRecords()) != 0 {
 		t.Error("should be zero")
