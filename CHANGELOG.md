@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.1] - 2026-07-11
+
+### Fixed
+
+- concurrent map writes panic
+
 ## [0.1.0] - 2025-07-20
 
 ### Added
